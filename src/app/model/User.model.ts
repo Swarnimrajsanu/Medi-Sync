@@ -1,84 +1,89 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import bcrypt from "bcryptjs";
+import mongoose, { Document, Model } from "mongoose";
 
-
-export interface Message extends Document {
-    content : string;
-    createdAt : Date;
-}
-export interface Message {
-  _id: string;
-  content: string;
-  senderName?: string;
+// TypeScript interface for User document
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password: string;
+  role: "patient" | "doctor" | "admin";
   createdAt: Date;
+  updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
-const MessageSchema: Schema<Message> = new Schema({
-    content:{
-        type: String,
-        required: true
+
+const UserSchema = new mongoose.Schema<IUser>(
+  {
+    name: { 
+      type: String, 
+      required: [true, "Name is required"],
+      trim: true,
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [50, "Name cannot exceed 50 characters"]
     },
-    createdAt:{
-        type: Date,
-        required: true,
-        default: Date.now
+    email: { 
+      type: String, 
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [
+        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+        "Please provide a valid email"
+      ]
+    },
+    password: { 
+      type: String, 
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+      select: false // Don't return password by default in queries
+    },
+    role: {
+      type: String,
+      enum: {
+        values: ["patient", "doctor", "admin"],
+        message: "{VALUE} is not a valid role"
+      },
+      default: "patient",
+    },
+  },
+  { 
+    timestamps: true,
+    toJSON: {
+      transform: function(doc, ret) {
+        //delete ret.password;
+        return ret;
+      }
     }
-})
+  }
+);
 
-export interface User extends Document {
-    username: string;
-    email: string;
-    password: string;
-    verifyCode: string;
-    verifyCodeExpiry: Date;
-    isVerified: boolean;
-    isAcceptingMessages: boolean;
-    messages: Message[];
-}
+// Hash password before saving
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (error: any) {
+    next(error);
+  }
+});
 
-const UserSchema: Schema<User> = new Schema({
-    username:{
-        type: String,
-        required: [true, 'Username is required'],
-        unique: true,
-        trim: true
-    },
-    email:{
-        type: String,
-        required: [true, 'Email is required'],
-        unique: true,
-        trim: true,
-        lowercase: true,
-        match: [/\S+@\S+\.\S+/, 'Email is invalid'] // Simple email regex validation
-    },
-    password:{
-        type: String,
-        required: [true, 'Password is required']
-    },
-    verifyCode:{
-        type: String,
-        required: false
-    },
-    verifyCodeExpiry:{
-        type: Date,
-        required: false
-    },
-    isVerified:{
-        type: Boolean,
-        required: true,
-        default: false
-    },
-    isAcceptingMessages:{
-        type: Boolean,
-        required: true,
-        default: true   
-    },
-    messages:[MessageSchema]
-},{
-    timestamps: true
-})
+// Method to compare passwords
+UserSchema.methods.comparePassword = async function (
+  candidatePassword: string
+): Promise<boolean> {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    return false;
+  }
+};
 
+// Create indexes for better query performance
+UserSchema.index({ email: 1 });
 
-export const UserModel = (mongoose.models.User as mongoose.Model<User>) || mongoose.model<User>('User', UserSchema);
+const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
-export default UserModel;
-
-
+export default User;
