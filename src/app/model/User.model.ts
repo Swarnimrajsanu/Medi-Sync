@@ -81,9 +81,34 @@ UserSchema.methods.comparePassword = async function (
   }
 };
 
-// Create indexes for better query performance
-UserSchema.index({ email: 1 });
+// Note: email already has unique: true, so we don't need a separate index
+// The unique: true on email field automatically creates an index
+// Removing duplicate index to avoid conflicts
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+
+// Clean up old username index if it exists (one-time operation)
+if (mongoose.connection.readyState === 1) {
+  // Only run if already connected
+  User.collection.dropIndex("username_1").catch((err: any) => {
+    // Index doesn't exist or already dropped - that's fine
+    if (err.code !== 27 && err.codeName !== "IndexNotFound") {
+      console.warn("Could not drop old username index:", err.message);
+    }
+  });
+} else {
+  // If not connected yet, set up a one-time listener
+  mongoose.connection.once("connected", async () => {
+    try {
+      await User.collection.dropIndex("username_1");
+      console.log("✅ Cleaned up old username index");
+    } catch (err: any) {
+      // Index doesn't exist or already dropped - that's fine
+      if (err.code !== 27 && err.codeName !== "IndexNotFound") {
+        console.warn("Could not drop old username index:", err.message);
+      }
+    }
+  });
+}
 
 export default User;

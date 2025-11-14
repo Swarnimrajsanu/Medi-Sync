@@ -25,6 +25,10 @@ export default function RegisterPage() {
       setError("Name is required");
       return;
     }
+    if (name.trim().length < 2) {
+      setError("Name must be at least 2 characters");
+      return;
+    }
     if (!email.trim()) {
       setError("Email is required");
       return;
