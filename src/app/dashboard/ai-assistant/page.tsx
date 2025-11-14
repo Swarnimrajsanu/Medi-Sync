@@ -12,16 +12,15 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Bot,
-  FileText,
+  CheckCircle2,
+  Clock,
   Mic,
   MicOff,
   Stethoscope,
   TestTube,
   TrendingUp,
-  X,
   Upload,
-  CheckCircle2,
-  Clock,
+  X
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -40,38 +39,78 @@ export default function AIAssistantPage() {
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize Speech Recognition
+  // Initialize Web Speech API for Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // Check for Web Speech API support
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = "en-US";
+        
+        // Configure Web Speech API
+        recognition.continuous = true; // Keep listening until stopped
+        recognition.interimResults = true; // Show interim results for better UX
+        recognition.lang = "en-US"; // Set language to English (US)
+        recognition.maxAlternatives = 1; // Only get the best result
 
         recognition.onstart = () => {
           setIsListening(true);
+          setIsRecording(true);
         };
 
         recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setSymptoms((prev) => prev + (prev ? " " : "") + transcript);
-          setIsRecording(false);
-          setIsListening(false);
+          let interimTranscript = "";
+          let finalTranscript = "";
+
+          // Process all results
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + " ";
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // Update symptoms with final transcript
+          if (finalTranscript) {
+            setSymptoms((prev) => (prev ? prev + " " : "") + finalTranscript.trim());
+          }
         };
 
         recognition.onerror = (event: any) => {
-          console.error("Speech recognition error:", event.error);
+          console.error("Web Speech API error:", event.error);
           setIsRecording(false);
           setIsListening(false);
-          if (event.error === "not-allowed") {
-            toast({
-              title: "Microphone Permission Denied",
-              description: "Please allow microphone access to use voice input",
-              variant: "error",
-            });
+
+          let errorMessage = "Unable to process voice input. Please try again.";
+          
+          switch (event.error) {
+            case "not-allowed":
+              errorMessage = "Microphone permission denied. Please allow microphone access in your browser settings.";
+              break;
+            case "no-speech":
+              errorMessage = "No speech detected. Please try speaking again.";
+              break;
+            case "audio-capture":
+              errorMessage = "No microphone found. Please check your microphone connection.";
+              break;
+            case "network":
+              errorMessage = "Network error. Please check your internet connection.";
+              break;
+            case "aborted":
+              // User stopped recording, no need to show error
+              return;
+            default:
+              errorMessage = `Speech recognition error: ${event.error}`;
           }
+
+          toast({
+            title: "Voice Recognition Error",
+            description: errorMessage,
+            variant: "error",
+          });
         };
 
         recognition.onend = () => {
@@ -80,6 +119,9 @@ export default function AIAssistantPage() {
         };
 
         recognitionRef.current = recognition;
+      } else {
+        // Web Speech API not supported
+        console.warn("Web Speech API is not supported in this browser");
       }
     }
   }, []);
@@ -88,27 +130,45 @@ export default function AIAssistantPage() {
     if (!recognitionRef.current) {
       toast({
         title: "Voice Not Supported",
-        description: "Your browser does not support voice recognition",
+        description: "Your browser does not support Web Speech API. Please use Chrome, Edge, or Safari.",
         variant: "error",
       });
       return;
     }
 
     if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      setIsListening(false);
-    } else {
+      // Stop Web Speech API recognition
       try {
-        recognitionRef.current.start();
-        setIsRecording(true);
+        recognitionRef.current.stop();
+        setIsRecording(false);
+        setIsListening(false);
       } catch (error) {
-        console.error("Error starting recognition:", error);
-        toast({
-          title: "Recording Error",
-          description: "Unable to start voice recording",
-          variant: "error",
-        });
+        console.error("Error stopping recognition:", error);
+      }
+    } else {
+      // Start Web Speech API recognition
+      try {
+        // Clear any previous state
+        setIsRecording(false);
+        setIsListening(false);
+        
+        // Start recognition
+        recognitionRef.current.start();
+      } catch (error: any) {
+        console.error("Error starting Web Speech API:", error);
+        
+        // Handle specific errors
+        if (error.message?.includes("already started")) {
+          // Recognition already running, just update state
+          setIsRecording(true);
+          setIsListening(true);
+        } else {
+          toast({
+            title: "Recording Error",
+            description: "Unable to start voice recording. Please check your microphone permissions.",
+            variant: "error",
+          });
+        }
       }
     }
   };
