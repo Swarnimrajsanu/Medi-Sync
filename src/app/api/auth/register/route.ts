@@ -16,18 +16,40 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
-    const { name, email, password } = await req.json();
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      return NextResponse.json({ 
+        error: "Invalid request body. Please provide name, email, and password." 
+      }, { status: 400 });
+    }
+
+    const { name, email, password } = body;
 
     // Validate input
-    if (!name || !name.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ 
+        error: "Name is required and must be a valid string" 
+      }, { status: 400 });
     }
-    if (!email || !email.trim()) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return NextResponse.json({ 
+        error: "Email is required and must be a valid string" 
+      }, { status: 400 });
     }
-    if (!password || password.length < 6) {
+    if (!password || typeof password !== "string" || password.length < 6) {
       return NextResponse.json({ 
         error: "Password is required and must be at least 6 characters" 
+      }, { status: 400 });
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return NextResponse.json({ 
+        error: "Please provide a valid email address" 
       }, { status: 400 });
     }
 
