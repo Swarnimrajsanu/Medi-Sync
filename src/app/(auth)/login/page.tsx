@@ -63,9 +63,9 @@ export default function LoginPage() {
         variant: "success",
       });
 
-      // Redirect to dashboard or home page after successful login
+      // Redirect to home page after successful login
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/");
       }, 1000);
     } catch (err) {
       setError("An error occurred. Please try again.");

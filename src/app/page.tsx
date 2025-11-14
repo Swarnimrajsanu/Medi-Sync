@@ -1,11 +1,21 @@
+"use client";
 
-function page() {
+import CTASection from "@/components/home/CTASection";
+import FeaturesSection from "@/components/home/FeaturesSection";
+import Footer from "@/components/home/Footer";
+import HeroSection from "@/components/home/HeroSection";
+import HowItWorks from "@/components/home/HowItWorks";
+import Navbar from "@/components/home/Navbar";
+
+export default function HomePage() {
   return (
-    <div>
-      home
+    <div className="min-h-screen">
+      <Navbar />
+      <HeroSection />
+      <FeaturesSection />
+      <HowItWorks />
+      <CTASection />
+      <Footer />
     </div>
-  )
+  );
 }
-
-export default page
-

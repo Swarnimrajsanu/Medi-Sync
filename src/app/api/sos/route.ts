@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     // For now, we'll simulate doctor assignment
     // In production, this would query the database for nearest available doctor
-    const doctorPhone = "+91-9876543210"; // This should come from database
+    const doctorPhone = "+91-9304378349"; // This should come from database
     const doctorName = "Dr. Emergency Response"; // This should come from database
     const contactsNotified = 3; // Simulated number of contacts notified
 
