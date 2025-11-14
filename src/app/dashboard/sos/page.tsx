@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSOS } from "@/hooks/useSOS";
 import { AIMessage } from "@/types/ai";
 import { motion } from "framer-motion";
-import { AlertTriangle, Bot, Building2, CheckCircle2, Clock, MapPin, Phone, Send, X } from "lucide-react";
+import { AlertTriangle, Bot, Building2, CheckCircle2, Clock, MapPin, Mic, MicOff, Phone, Send, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function SOSPage() {
@@ -32,6 +32,11 @@ export default function SOSPage() {
   const [aiMessages, setAiMessages] = useState<AIMessage[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [showAIChat, setShowAIChat] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(true);
+  const recognitionRef = useRef<any>(null);
+  const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const [lastAlert, setLastAlert] = useState<{
     alertId: string;
     timestamp: string;
@@ -40,8 +45,66 @@ export default function SOSPage() {
     doctorName?: string;
   } | null>(null);
 
-  // Fetch location on component mount
+  // Initialize Speech Recognition and Synthesis
   useEffect(() => {
+    // Check browser support
+    if (typeof window !== "undefined") {
+      // Speech Recognition (Speech-to-Text)
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setAiInput(transcript);
+          setIsRecording(false);
+          setIsListening(false);
+          // Auto-send after voice input
+          setTimeout(() => {
+            handleAISend(new Event("submit") as any);
+          }, 100);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsRecording(false);
+          setIsListening(false);
+          if (event.error === "not-allowed") {
+            toast({
+              title: "Microphone Permission Denied",
+              description: "Please allow microphone access to use voice chat",
+              variant: "error",
+            });
+          } else {
+            toast({
+              title: "Voice Recognition Error",
+              description: "Unable to process voice input. Please try typing instead.",
+              variant: "error",
+            });
+          }
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+
+      // Speech Synthesis (Text-to-Speech)
+      if ("speechSynthesis" in window) {
+        synthesisRef.current = window.speechSynthesis;
+      }
+    }
+
     fetchLocation();
     // Initialize AI chat with welcome message
     setAiMessages([{
@@ -204,8 +267,10 @@ export default function SOSPage() {
     }
   };
 
-  const handleAISend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAISend = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     if (!aiInput.trim() || aiLoading) return;
 
     const userMessage: AIMessage = {
@@ -216,11 +281,12 @@ export default function SOSPage() {
     };
 
     setAiMessages((prev) => [...prev, userMessage]);
+    const inputText = aiInput.trim();
     setAiInput("");
 
     const context = lastAlert ? `Recent emergency alert sent: ${lastAlert.alertId}` : undefined;
     const response = await sendAIMessage({
-      message: userMessage.content,
+      message: inputText,
       context,
     });
 
@@ -232,12 +298,78 @@ export default function SOSPage() {
         timestamp: new Date().toISOString(),
       };
       setAiMessages((prev) => [...prev, aiMessage]);
+      
+      // Speak the AI response if speech is enabled
+      if (speechEnabled && synthesisRef.current) {
+        speakText(response.response);
+      }
     } else if (aiError) {
       toast({
         title: "AI Error",
         description: aiError,
         variant: "error",
       });
+    }
+  };
+
+  const handleVoiceRecord = () => {
+    if (!recognitionRef.current) {
+      toast({
+        title: "Voice Not Supported",
+        description: "Your browser does not support voice recognition",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (isRecording) {
+      // Stop recording
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      setIsListening(false);
+    } else {
+      // Start recording
+      try {
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error("Error starting recognition:", error);
+        toast({
+          title: "Recording Error",
+          description: "Unable to start voice recording",
+          variant: "error",
+        });
+      }
+    }
+  };
+
+  const speakText = (text: string) => {
+    if (!synthesisRef.current) return;
+
+    // Stop any ongoing speech
+    synthesisRef.current.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    utterance.lang = "en-US";
+
+    utterance.onend = () => {
+      console.log("Speech finished");
+    };
+
+    utterance.onerror = (error) => {
+      console.error("Speech synthesis error:", error);
+    };
+
+    synthesisRef.current.speak(utterance);
+  };
+
+  const toggleSpeech = () => {
+    setSpeechEnabled(!speechEnabled);
+    if (synthesisRef.current && !speechEnabled) {
+      synthesisRef.current.cancel();
     }
   };
 
@@ -503,19 +635,53 @@ export default function SOSPage() {
                         onChange={(e) => setAiInput(e.target.value)}
                         placeholder="Ask me anything about your health..."
                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                        disabled={aiLoading}
+                        disabled={aiLoading || isRecording}
                       />
+                      <Button
+                        type="button"
+                        variant={isRecording ? "primary" : "outline"}
+                        size="sm"
+                        onClick={handleVoiceRecord}
+                        disabled={aiLoading}
+                        className={isRecording ? "bg-red-600 hover:bg-red-700 text-white animate-pulse" : ""}
+                        title={isRecording ? "Stop recording" : "Start voice recording"}
+                      >
+                        {isRecording ? (
+                          <MicOff className="h-4 w-4" />
+                        ) : (
+                          <Mic className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleSpeech}
+                        title={speechEnabled ? "Disable voice responses" : "Enable voice responses"}
+                      >
+                        {speechEnabled ? (
+                          <Volume2 className="h-4 w-4 text-teal-600" />
+                        ) : (
+                          <VolumeX className="h-4 w-4 text-slate-400" />
+                        )}
+                      </Button>
                       <Button
                         type="submit"
                         variant="primary"
                         size="sm"
                         isLoading={aiLoading}
-                        disabled={!aiInput.trim()}
+                        disabled={!aiInput.trim() || isRecording}
                         className="bg-teal-600 hover:bg-teal-700"
                       >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
+                    {isListening && (
+                      <div className="mt-2 flex items-center gap-2 text-sm text-red-600">
+                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                        <span>Listening...</span>
+                      </div>
+                    )}
                   </form>
                 </motion.div>
               )}
