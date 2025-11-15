@@ -1,33 +1,43 @@
 "use client";
 
 import { useToast } from "@/app/hook/use-toast";
-import Button from "@/components/ui/Button";
+import AIRecommendationCard from "@/components/dashboard/surgery/AIRecommendationCard";
+import CompareHospitalsModal from "@/components/dashboard/surgery/CompareHospitalsModal";
+import HospitalResultCard from "@/components/dashboard/surgery/HospitalResultCard";
+import SurgeryInputCard from "@/components/dashboard/surgery/SurgeryInputCard";
 import Card from "@/components/ui/Card";
-import Input from "@/components/ui/Input";
 import Skeleton from "@/components/ui/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
-import { useBooking } from "@/hooks/useBooking";
-import { Hospital } from "@/types/surgery";
+import {
+  AIRecommendation,
+  Hospital,
+  SurgerySearchResponse,
+} from "@/types/surgery";
 import { motion } from "framer-motion";
-import { Calendar, DollarSign, MapPin, Phone, Star } from "lucide-react";
+import { Calendar, GitCompare } from "lucide-react";
 import { useState } from "react";
 
 export default function SurgeryPlannerPage() {
   const { user, loading: authLoading } = useAuth();
-  const { searchHospitals, loading: searchLoading, error } = useBooking();
   const { toast } = useToast();
 
-  const [budget, setBudget] = useState("");
+  const [symptoms, setSymptoms] = useState("");
   const [surgeryType, setSurgeryType] = useState("");
-  const [location, setLocation] = useState("");
+  const [city, setCity] = useState("");
+  const [budget, setBudget] = useState(100000);
+  const [loading, setLoading] = useState(false);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [aiRecommendations, setAiRecommendations] =
+    useState<AIRecommendation | null>(null);
+  const [source, setSource] = useState<"database" | "ai" | "hybrid" | null>(
+    null
+  );
   const [hasSearched, setHasSearched] = useState(false);
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [selectedHospitals, setSelectedHospitals] = useState<Hospital[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const budgetNum = parseFloat(budget);
-    if (!budget || isNaN(budgetNum) || budgetNum <= 0) {
+  const handleSearch = async () => {
+    if (!budget || budget <= 0) {
       toast({
         title: "Invalid Budget",
         description: "Please enter a valid budget amount",
@@ -36,27 +46,135 @@ export default function SurgeryPlannerPage() {
       return;
     }
 
-    const result = await searchHospitals({
-      budget: budgetNum,
-      surgeryType: surgeryType.trim() || undefined,
-      location: location.trim() || undefined,
-    });
+    setLoading(true);
+    setHasSearched(true);
 
-    if (result) {
-      setHospitals(result.hospitals);
-      setHasSearched(true);
+    try {
+      const response = await fetch("/api/surgery/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          symptoms: symptoms.trim() || undefined,
+          surgeryType: surgeryType.trim() || undefined,
+          city: city.trim() || undefined,
+          budget,
+        }),
+      });
+
+      const data: any = await response.json();
+
+      if (!response.ok) {
+        // Handle error response
+        const errorMessage = data.error || data.message || "Search failed";
+        throw new Error(errorMessage);
+      }
+
+      // Handle success response
+      const searchData = data as SurgerySearchResponse;
+      setHospitals(searchData.hospitals || []);
+      setAiRecommendations(searchData.aiRecommendations || null);
+      setSource(searchData.source);
+
       toast({
         title: "Search Complete",
-        description: result.message,
+        description: searchData.message || `Found ${searchData.hospitals?.length || 0} result(s)`,
         variant: "success",
       });
-    } else if (error) {
+    } catch (error: any) {
+      console.error("Search error:", error);
       toast({
         title: "Search Failed",
-        description: error,
+        description: error.message || "Failed to search hospitals. Please try again.",
+        variant: "error",
+      });
+      setHospitals([]);
+      setAiRecommendations(null);
+      setSource(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSuggestSurgeryType = async (symptomsText: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          message: `Based on these symptoms, suggest the most likely surgery type needed: ${symptomsText}. Respond with only the surgery type name, nothing else.`,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const suggestedType = data.response?.trim() || "";
+        if (suggestedType) {
+          setSurgeryType(suggestedType);
+          toast({
+            title: "Surgery Type Suggested",
+            description: `Suggested: ${suggestedType}`,
+            variant: "success",
+          });
+        }
+      } else {
+        throw new Error("Failed to get suggestion");
+      }
+    } catch (error) {
+      console.error("Error suggesting surgery type:", error);
+      toast({
+        title: "Suggestion Failed",
+        description: "Could not suggest surgery type. Please enter manually.",
         variant: "error",
       });
     }
+  };
+
+  const handleBookConsultation = (hospital: Hospital) => {
+    toast({
+      title: "Booking Consultation",
+      description: `Redirecting to book consultation with ${hospital.name}...`,
+      variant: "success",
+    });
+    // TODO: Implement booking flow
+  };
+
+  const handleViewDetails = (hospital: Hospital) => {
+    toast({
+      title: "View Details",
+      description: `Showing details for ${hospital.name}...`,
+      variant: "success",
+    });
+    // TODO: Implement details view
+  };
+
+  const handleCompareHospitals = () => {
+    if (hospitals.length < 2) {
+      toast({
+        title: "Not Enough Hospitals",
+        description: "Please select at least 2 hospitals to compare",
+        variant: "error",
+      });
+      return;
+    }
+    setSelectedHospitals(hospitals.slice(0, Math.min(5, hospitals.length)));
+    setShowCompareModal(true);
+  };
+
+  const handleReset = () => {
+    setSymptoms("");
+    setSurgeryType("");
+    setCity("");
+    setBudget(100000);
+    setHospitals([]);
+    setAiRecommendations(null);
+    setSource(null);
+    setHasSearched(false);
   };
 
   if (authLoading) {
@@ -90,65 +208,56 @@ export default function SurgeryPlannerPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
+          className="mb-6"
         >
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Surgery Planner</h1>
-          <p className="text-slate-600 mb-6">
-            Enter your budget and preferences to find the best hospitals for your surgery
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Surgery Planner
+          </h1>
+          <p className="text-slate-600">
+            Find the best hospitals for your surgery based on your budget and
+            requirements
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Search Form */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <Card>
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">Search Criteria</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  label="Budget (₹)"
-                  type="number"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  placeholder="Enter your budget"
-                  min="0"
-                  step="1000"
-                  required
-                />
+          {/* Input Card */}
+          <div>
+            <SurgeryInputCard
+              symptoms={symptoms}
+              setSymptoms={setSymptoms}
+              surgeryType={surgeryType}
+              setSurgeryType={setSurgeryType}
+              city={city}
+              setCity={setCity}
+              budget={budget}
+              setBudget={setBudget}
+              onSearch={handleSearch}
+              loading={loading}
+              onSuggestSurgeryType={handleSuggestSurgeryType}
+            />
+          </div>
 
-                <Input
-                  label="Surgery Type (Optional)"
-                  type="text"
-                  value={surgeryType}
-                  onChange={(e) => setSurgeryType(e.target.value)}
-                  placeholder="e.g., Cardiac Surgery"
-                />
-
-                <Input
-                  label="Location (Optional)"
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., Delhi, Mumbai"
-                />
-
-                <Button
-                  type="submit"
-                  isLoading={searchLoading}
-                  className="w-full"
-                  disabled={!budget}
+          {/* Results Section */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Compare Button */}
+            {hospitals.length > 1 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <button
+                  onClick={handleCompareHospitals}
+                  className="w-full p-3 bg-white border-2 border-teal-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors flex items-center justify-center gap-2 text-teal-700 font-medium"
                 >
-                  Search Hospitals
-                </Button>
-              </form>
-            </Card>
-          </motion.div>
+                  <GitCompare className="h-5 w-5" />
+                  Compare Hospitals ({hospitals.length})
+                </button>
+              </motion.div>
+            )}
 
-          {/* Results */}
-          <div className="lg:col-span-2">
-            {searchLoading ? (
+            {/* Loading State */}
+            {loading && (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <Card key={i}>
@@ -156,111 +265,97 @@ export default function SurgeryPlannerPage() {
                   </Card>
                 ))}
               </div>
-            ) : hasSearched && hospitals.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card>
-                  <div className="text-center py-12">
-                    <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                      No Hospitals Found
-                    </h3>
-                    <p className="text-slate-600 mb-4">
-                      Try adjusting your budget or search criteria
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setBudget("");
-                        setSurgeryType("");
-                        setLocation("");
-                        setHospitals([]);
-                        setHasSearched(false);
-                      }}
-                    >
-                      Reset Search
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
-            ) : hospitals.length > 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-4"
-              >
-                {hospitals.map((hospital, index) => (
+            )}
+
+            {/* Results */}
+            {!loading && hasSearched && (
+              <>
+                {/* Real Hospitals */}
+                {hospitals.length > 0 && (
                   <motion.div
-                    key={hospital.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4"
                   >
-                    <Card hover>
-                      <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="text-xl font-semibold text-slate-900">
-                              {hospital.name}
-                            </h3>
-                            <div className="flex items-center gap-1 text-amber-500">
-                              <Star className="h-5 w-5 fill-current" />
-                              <span className="font-medium">{hospital.rating}</span>
-                            </div>
-                          </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        Available Hospitals ({hospitals.length})
+                      </h2>
+                      {source === "database" && (
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                          From Database
+                        </span>
+                      )}
+                    </div>
+                    {hospitals.map((hospital, index) => (
+                      <HospitalResultCard
+                        key={hospital.id}
+                        hospital={hospital}
+                        index={index}
+                        onBookConsultation={handleBookConsultation}
+                        onViewDetails={handleViewDetails}
+                      />
+                    ))}
+                  </motion.div>
+                )}
 
-                          <div className="flex items-center text-slate-600 mb-3">
-                            <MapPin className="h-4 w-4 mr-1.5" />
-                            <span>{hospital.location}</span>
-                            {hospital.distance && (
-                              <span className="ml-2 text-sm">• {hospital.distance} km away</span>
-                            )}
-                          </div>
+                {/* AI Recommendations */}
+                {aiRecommendations && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        AI Recommendations
+                      </h2>
+                      {source === "ai" && (
+                        <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                          AI Generated
+                        </span>
+                      )}
+                      {source === "hybrid" && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                          AI Suggestions
+                        </span>
+                      )}
+                    </div>
+                    <AIRecommendationCard
+                      recommendation={aiRecommendations}
+                      source={source === "ai" ? "ai" : "hybrid"}
+                    />
+                  </div>
+                )}
 
-                          <div className="flex items-center gap-2 mb-3">
-                            <DollarSign className="h-4 w-4 text-teal-600" />
-                            <span className="text-lg font-semibold text-teal-600">
-                              ₹{hospital.price.toLocaleString()}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {hospital.specialties.map((specialty, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-full"
-                              >
-                                {specialty}
-                              </span>
-                            ))}
-                          </div>
-
-                          {hospital.contact && (
-                            <div className="flex items-center text-slate-600 text-sm">
-                              <Phone className="h-4 w-4 mr-1.5" />
-                              <span>{hospital.contact}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col justify-end gap-2">
-                          <Button variant="primary" size="md">
-                            Book Appointment
-                          </Button>
-                          <Button variant="outline" size="md">
-                            View Details
-                          </Button>
-                        </div>
+                {/* Empty State */}
+                {hospitals.length === 0 && !aiRecommendations && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Card>
+                      <div className="text-center py-12">
+                        <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                          No Results Found
+                        </h3>
+                        <p className="text-slate-600 mb-4">
+                          Try adjusting your budget, location, or surgery type
+                        </p>
+                        <button
+                          onClick={handleReset}
+                          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                        >
+                          Reset Search
+                        </button>
                       </div>
                     </Card>
                   </motion.div>
-                ))}
-              </motion.div>
-            ) : (
+                )}
+              </>
+            )}
+
+            {/* Initial State */}
+            {!hasSearched && !loading && (
               <Card>
                 <div className="text-center py-12">
                   <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
@@ -268,7 +363,8 @@ export default function SurgeryPlannerPage() {
                     Start Your Search
                   </h3>
                   <p className="text-slate-600">
-                    Enter your budget and preferences to find the best hospitals for your surgery
+                    Enter your symptoms, budget, and location to find the best
+                    hospitals for your surgery
                   </p>
                 </div>
               </Card>
@@ -276,7 +372,13 @@ export default function SurgeryPlannerPage() {
           </div>
         </div>
       </div>
+
+      {/* Compare Hospitals Modal */}
+      <CompareHospitalsModal
+        isOpen={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+        hospitals={selectedHospitals}
+      />
     </div>
   );
 }
-

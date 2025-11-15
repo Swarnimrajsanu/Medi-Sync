@@ -1,17 +1,57 @@
 import mongoose, { Document, Model } from "mongoose";
 
+export interface ISurgery {
+  type: string;
+  minCost: number;
+  maxCost: number;
+  specialty: string;
+}
+
 export interface IHospital extends Document {
   name: string;
-  location: string;
-  price: number;
+  city: string;
+  address: string;
   rating: number;
-  specialties: string[];
+  surgeries: ISurgery[];
   distance?: number;
   image?: string;
   contact?: string;
+  // Legacy fields for backward compatibility
+  location?: string;
+  price?: number;
+  specialties?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const SurgerySchema = new mongoose.Schema({
+  type: {
+    type: String,
+    required: [true, "Surgery type is required"],
+    trim: true,
+  },
+  minCost: {
+    type: Number,
+    required: [true, "Minimum cost is required"],
+    min: [0, "Cost must be positive"],
+  },
+  maxCost: {
+    type: Number,
+    required: [true, "Maximum cost is required"],
+    min: [0, "Cost must be positive"],
+    validate: {
+      validator: function(this: ISurgery, value: number) {
+        return value >= this.minCost;
+      },
+      message: "Maximum cost must be greater than or equal to minimum cost",
+    },
+  },
+  specialty: {
+    type: String,
+    required: [true, "Specialty is required"],
+    trim: true,
+  },
+}, { _id: false });
 
 const HospitalSchema = new mongoose.Schema<IHospital>(
   {
@@ -20,15 +60,16 @@ const HospitalSchema = new mongoose.Schema<IHospital>(
       required: [true, "Hospital name is required"],
       trim: true,
     },
-    location: {
+    city: {
       type: String,
-      required: [true, "Location is required"],
+      required: [true, "City is required"],
       trim: true,
+      lowercase: true,
     },
-    price: {
-      type: Number,
-      required: [true, "Price is required"],
-      min: [0, "Price must be positive"],
+    address: {
+      type: String,
+      required: [true, "Address is required"],
+      trim: true,
     },
     rating: {
       type: Number,
@@ -36,9 +77,8 @@ const HospitalSchema = new mongoose.Schema<IHospital>(
       min: [0, "Rating must be between 0 and 5"],
       max: [5, "Rating must be between 0 and 5"],
     },
-    specialties: {
-      type: [String],
-      required: [true, "Specialties are required"],
+    surgeries: {
+      type: [SurgerySchema],
       default: [],
     },
     distance: {
@@ -51,6 +91,19 @@ const HospitalSchema = new mongoose.Schema<IHospital>(
     contact: {
       type: String,
     },
+    // Legacy fields for backward compatibility
+    location: {
+      type: String,
+      trim: true,
+    },
+    price: {
+      type: Number,
+      min: [0, "Price must be positive"],
+    },
+    specialties: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -58,8 +111,9 @@ const HospitalSchema = new mongoose.Schema<IHospital>(
 );
 
 // Create indexes for better query performance
-HospitalSchema.index({ location: 1 });
-HospitalSchema.index({ price: 1 });
+HospitalSchema.index({ city: 1 });
+HospitalSchema.index({ "surgeries.type": 1 });
+HospitalSchema.index({ "surgeries.minCost": 1 });
 HospitalSchema.index({ rating: -1 });
 
 const Hospital: Model<IHospital> =

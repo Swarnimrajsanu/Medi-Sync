@@ -8,9 +8,16 @@ interface ModalProps {
   title?: string;
   children: ReactNode;
   showCloseButton?: boolean;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
-export default function Modal({ isOpen, onClose, title, children, showCloseButton = true }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, showCloseButton = true, size = "md" }: ModalProps) {
+  const sizeClasses = {
+    sm: "max-w-md",
+    md: "max-w-md",
+    lg: "max-w-2xl",
+    xl: "max-w-4xl",
+  };
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -41,7 +48,7 @@ export default function Modal({ isOpen, onClose, title, children, showCloseButto
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+              className={`bg-white rounded-xl shadow-xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
