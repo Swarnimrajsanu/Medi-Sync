@@ -27,7 +27,7 @@ export default function CTASection() {
               <Button
                 variant="primary"
                 size="lg"
-                className="bg-white text-teal-600 hover:bg-slate-50 px-8 py-6 text-lg font-semibold"
+                className="bg-black text-teal-600 hover:bg-slate-50 px-8 py-6 text-lg font-semibold"
               >
                 Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
