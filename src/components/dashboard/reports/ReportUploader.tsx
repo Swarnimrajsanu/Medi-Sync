@@ -140,7 +140,7 @@ export default function ReportUploader({ onUpload, uploading, error }: ReportUpl
           </div>
         )}
 
-        {error && (
+        {error && error !== "Please login to continue" && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
             <p className="text-sm text-red-600">{error}</p>
           </div>

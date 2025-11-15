@@ -14,7 +14,7 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, logout: authLogout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,10 +42,9 @@ export default function Navbar() {
   const isDashboardPage = pathname?.startsWith("/dashboard");
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/");
+    authLogout();
     setShowUserMenu(false);
+    router.push("/");
   };
 
   return (
@@ -90,17 +89,17 @@ export default function Navbar() {
                 </Link>
               </>
             )}
+            <Link
+              href="/dashboard"
+              className={`text-sm font-medium transition-colors ${
+                isDashboardPage ? "text-teal-600" : "text-slate-600 hover:text-teal-600"
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4 inline mr-1" />
+              Dashboard
+            </Link>
             {user ? (
               <div className="flex items-center gap-4">
-                <Link
-                  href="/dashboard"
-                  className={`text-sm font-medium transition-colors ${
-                    isDashboardPage ? "text-teal-600" : "text-slate-600 hover:text-teal-600"
-                  }`}
-                >
-                  <LayoutDashboard className="h-4 w-4 inline mr-1" />
-                  Dashboard
-                </Link>
                 <div className="relative user-menu-container">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
@@ -189,16 +188,16 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+              <Link
+                href="/dashboard"
+                className="block text-sm font-medium text-slate-600 hover:text-teal-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <LayoutDashboard className="h-4 w-4 inline mr-2" />
+                Dashboard
+              </Link>
               {user ? (
                 <>
-                  <Link
-                    href="/dashboard"
-                    className="block text-sm font-medium text-slate-600 hover:text-teal-600"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <LayoutDashboard className="h-4 w-4 inline mr-2" />
-                    Dashboard
-                  </Link>
                   <div className="pt-3 space-y-2 border-t border-slate-200">
                     <div className="px-2 py-2">
                       <p className="text-sm font-medium text-slate-900">{user.name}</p>

@@ -14,7 +14,8 @@ export function useRecovery() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        // Allow viewing but show empty state
+        setPlan(null);
         setLoading(false);
         return;
       }
@@ -49,7 +50,7 @@ export function useRecovery() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to update tasks");
         return false;
       }
 
@@ -88,7 +89,7 @@ export function useRecovery() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to update tasks");
         return false;
       }
 
@@ -127,7 +128,7 @@ export function useRecovery() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to create a recovery plan");
         return false;
       }
 

@@ -13,7 +13,7 @@ export function useHealthAI() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to upload reports");
         return null;
       }
 
@@ -52,7 +52,7 @@ export function useHealthAI() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to use AI analysis");
         return null;
       }
 

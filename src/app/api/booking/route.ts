@@ -8,10 +8,9 @@ export async function POST(req: Request) {
   try {
     await connectDB();
     
+    // Authentication is optional for viewing/searching hospitals
     const decoded: any = verifyToken(req);
-    if (!decoded) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Continue even if not authenticated - allow public access to search
 
     const body: BookingRequest = await req.json();
     const { budget, surgeryType, location } = body;

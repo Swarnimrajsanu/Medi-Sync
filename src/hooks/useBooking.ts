@@ -11,17 +11,19 @@ export function useBooking() {
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please login to continue");
-        return null;
+      
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      
+      // Add auth header only if token exists
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch("/api/booking", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify(request),
       });
 

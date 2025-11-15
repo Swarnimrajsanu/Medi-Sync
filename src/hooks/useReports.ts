@@ -15,7 +15,8 @@ export function useReports() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        // Allow viewing but show empty state
+        setReports([]);
         setLoading(false);
         return;
       }

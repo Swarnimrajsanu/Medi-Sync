@@ -12,7 +12,7 @@ export function useAI() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to use AI assistant");
         return null;
       }
 

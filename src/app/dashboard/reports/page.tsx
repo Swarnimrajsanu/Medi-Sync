@@ -105,10 +105,6 @@ export default function ReportsPage() {
                     </Card>
                   ))}
                 </div>
-              ) : error && reports.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-red-600 mb-4">{error}</p>
-                </div>
               ) : reports.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />

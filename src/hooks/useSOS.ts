@@ -12,7 +12,7 @@ export function useSOS() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to continue");
+        setError("Please login to send emergency alerts");
         return null;
       }
 
