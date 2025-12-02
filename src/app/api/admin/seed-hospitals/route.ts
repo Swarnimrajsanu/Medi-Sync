@@ -2,7 +2,7 @@ import HospitalModel from "@/app/model/Hospital.model";
 import { connectDB } from "@/lib/dbConnect";
 import { NextResponse } from "next/server";
 
-const sampleHospitals = [
+const initialHospitals = [
   // Bangalore Hospitals
   {
     name: "Apollo Hospitals Bangalore",
@@ -157,6 +157,201 @@ const sampleHospitals = [
     ],
     distance: 9.7,
   },
+];
+
+const additionalHospitals = [
+  // Mumbai Hospitals
+  {
+    name: "Kokilaben Dhirubhai Ambani Hospital",
+    city: "mumbai",
+    address: "Rao Saheb, Achutrao Patwardhan Marg, Four Bungalows, Andheri West, Mumbai - 400053",
+    rating: 4.9,
+    contact: "+91-22-3099-9999",
+    surgeries: [
+      {
+        type: "Robotic Surgery",
+        minCost: 400000,
+        maxCost: 1000000,
+        specialty: "General Surgery",
+      },
+      {
+        type: "Cardiac Surgery",
+        minCost: 300000,
+        maxCost: 800000,
+        specialty: "Cardiology",
+      },
+      {
+        type: "Liver Transplant",
+        minCost: 1500000,
+        maxCost: 2500000,
+        specialty: "Transplant Surgery",
+      },
+    ],
+    distance: 15.5,
+  },
+  {
+    name: "Tata Memorial Hospital",
+    city: "mumbai",
+    address: "Dr. E Borges Road, Parel, Mumbai - 400012",
+    rating: 4.7,
+    contact: "+91-22-2417-7000",
+    surgeries: [
+      {
+        type: "Oncology Surgery",
+        minCost: 50000,
+        maxCost: 200000,
+        specialty: "Oncology",
+      },
+      {
+        type: "Head and Neck Surgery",
+        minCost: 40000,
+        maxCost: 150000,
+        specialty: "Oncology",
+      },
+    ],
+    distance: 12.0,
+  },
+  // Chennai Hospitals
+  {
+    name: "Apollo Hospitals Greams Road",
+    city: "chennai",
+    address: "21, Greams Lane, Off Greams Road, Chennai - 600006",
+    rating: 4.8,
+    contact: "+91-44-2829-3333",
+    surgeries: [
+      {
+        type: "Cardiac Surgery",
+        minCost: 250000,
+        maxCost: 600000,
+        specialty: "Cardiology",
+      },
+      {
+        type: "Orthopedic Surgery",
+        minCost: 180000,
+        maxCost: 450000,
+        specialty: "Orthopedics",
+      },
+    ],
+    distance: 8.2,
+  },
+  {
+    name: "MIOT International",
+    city: "chennai",
+    address: "4/112, Mount Poonamallee Rd, Manapakkam, Chennai - 600089",
+    rating: 4.6,
+    contact: "+91-44-4200-2288",
+    surgeries: [
+      {
+        type: "Joint Replacement",
+        minCost: 200000,
+        maxCost: 500000,
+        specialty: "Orthopedics",
+      },
+      {
+        type: "Neurosurgery",
+        minCost: 300000,
+        maxCost: 750000,
+        specialty: "Neurology",
+      },
+    ],
+    distance: 14.5,
+  },
+  // Hyderabad Hospitals
+  {
+    name: "Yashoda Hospitals",
+    city: "hyderabad",
+    address: "Raj Bhavan Rd, Matha Nagar, Somajiguda, Hyderabad - 500082",
+    rating: 4.7,
+    contact: "+91-40-4567-4567",
+    surgeries: [
+      {
+        type: "Cardiac Surgery",
+        minCost: 220000,
+        maxCost: 550000,
+        specialty: "Cardiology",
+      },
+      {
+        type: "Organ Transplant",
+        minCost: 1200000,
+        maxCost: 2000000,
+        specialty: "Transplant Surgery",
+      },
+    ],
+    distance: 6.5,
+  },
+  // Kolkata Hospitals
+  {
+    name: "Apollo Gleneagles Hospitals",
+    city: "kolkata",
+    address: "58, Canal Circular Road, Kadapara, Phool Bagan, Kankurgachi, Kolkata - 700054",
+    rating: 4.6,
+    contact: "+91-33-2320-3040",
+    surgeries: [
+      {
+        type: "Cardiac Surgery",
+        minCost: 180000,
+        maxCost: 450000,
+        specialty: "Cardiology",
+      },
+      {
+        type: "Oncology Surgery",
+        minCost: 200000,
+        maxCost: 500000,
+        specialty: "Oncology",
+      },
+    ],
+    distance: 10.2,
+  },
+  // More Bangalore Hospitals
+  {
+    name: "Narayana Health City",
+    city: "bangalore",
+    address: "258/A, Bommasandra Industrial Area, Anekal Taluk, Bangalore - 560099",
+    rating: 4.7,
+    contact: "1800-309-0309",
+    surgeries: [
+      {
+        type: "Cardiac Surgery",
+        minCost: 150000,
+        maxCost: 400000,
+        specialty: "Cardiology",
+      },
+      {
+        type: "Pediatric Surgery",
+        minCost: 100000,
+        maxCost: 300000,
+        specialty: "Pediatrics",
+      },
+    ],
+    distance: 22.0,
+  },
+  {
+    name: "Sakra World Hospital",
+    city: "bangalore",
+    address: "Sy No 52/2 & 52/3, Devarabeesanahalli, Varthur Hobli, Bangalore - 560103",
+    rating: 4.5,
+    contact: "+91-80-4969-4969",
+    surgeries: [
+      {
+        type: "Orthopedic Surgery",
+        minCost: 180000,
+        maxCost: 450000,
+        specialty: "Orthopedics",
+      },
+      {
+        type: "Neuro Surgery",
+        minCost: 250000,
+        maxCost: 600000,
+        specialty: "Neurology",
+      },
+    ],
+    distance: 12.5,
+  },
+];
+
+const sampleHospitals = [
+  ...initialHospitals,
+  ...additionalHospitals
 ];
 
 export async function POST(req: Request) {
