@@ -1,37 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+🌐 MediSync – Intelligent Healthcare & Surgery Planning Platform
 
-## Getting Started
+MediSync is an innovative digital healthcare platform designed to help patients understand their medical condition, plan surgeries based on budget, upload and manage reports, track recovery, and get emergency support — all on one unified platform.
 
-First, run the development server:
+📌 Table of Contents
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+What is MediSync?
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+System Flow
 
-## Learn More
+Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Local Setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deployment
 
-## Deploy on Vercel
+Screenshots (Optional)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# Medi-Sync
+License
+
+🩺 What is MediSync?
+
+MediSync is a smart healthcare assistant that combines:
+
+AI symptom understanding
+
+Surgery planning based on patient budget
+
+Voice-to-text symptom capturing
+
+Post-surgery recovery tracking
+
+Secure medical report management
+
+One-tap SOS emergency alerts
+
+It aims to make healthcare simple, clear, transparent, and accessible.
+
+✨ Features
+🤖 AI Health Assistant
+
+Patients describe symptoms through text, speech, or report upload
+
+AI explains possible conditions
+
+Suggests tests, specialists, or surgery (if needed)
+
+🏥 Smart Surgery Planner
+
+User provides symptoms + budget
+
+AI suggests best-fit hospital options
+
+Cost comparison, risk estimation, surgeon details
+
+Appointment/consultation booking flow
+
+📁 Medical Report Manager
+
+Upload images or PDFs
+
+Auto-organized medical history
+
+Secure & private storage
+
+🧘‍♂️ Recovery Tracker
+
+Post-surgery tasks, yoga, medicines
+
+Daily goals & achievement system
+
+Follow-up reminders
+
+🚨 SOS Emergency Feature
+
+One-tap emergency button
+
+Sends message + patient details + location
+
+Notifies assigned doctor/surgeon
+
+🔐 Authentication System
+
+Login/Register
+
+JWT-based security
+
+Protected dashboard routes
+
+🧩 Tech Stack
+Frontend
+
+Next.js 14 (App Router)
+
+Tailwind CSS
+
+Shadcn UI
+
+Framer Motion
+
+Web Speech API (voice-to-text)
+
+Backend
+
+Next.js API Routes
+
+MongoDB Atlas (Mongoose ORM)
+
+JWT Authentication
+
+Secure API endpoints
+
+Integrations
+
+AI Model (OpenAI / Gemini / Bhashini — optional)
+
+Cloud report storage (optional)
